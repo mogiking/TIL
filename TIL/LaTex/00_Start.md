@@ -15,7 +15,7 @@ Github Markdown에선 Link의 이미지를 가져오는 방법으로 구현한�
 ```
 **Example**: 
 ```
-Q^*(s,a)=R^{a}_{s}+\gamma\underset{{s'}\in{S}}{\sum}P^{a}_{ss'},(\underset{a}{max}Q^{*}({s'},{a'}))
+Q^*(s,a)=R^{a}_{s}+\gamma\underset{s'\in{S}}{\sum}P^{a}_{ss'},(\underset{a}{max}Q^{*}({s'},{a'}))
 ```
 **Outcome**:
 ![equation](http://www.sciweavers.org/tex2img.php?eq=Q^*(s,a)=R^{a}_{s}+\gamma\underset{{s'}\in{S}}{\sum}P^{a}_{ss'},(\underset{a}{max}Q^{*}({s'},{a'}))&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=)
