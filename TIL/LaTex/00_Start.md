@@ -11,7 +11,6 @@ Github Markdown에선 Link의 이미지를 가져오는 방법으로 구현한�
 예시는 아래의 링크 중 **[YOUR EQUATION]** 부분에 TeX형식으로 입력을 하면 된다.
 ```
 ![equation](http://www.sciweavers.org/tex2img.php?eq=[YOUR EQUATION]&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=)
-
 ```
 **Example**: 
 ```
