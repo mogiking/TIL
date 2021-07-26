@@ -183,7 +183,7 @@ imr = imr.fit(df2.values)
 imputed_data = imr.transform(df2.values)
 imputed_data
 
-# +
+# + [markdown] id="VLIH95sZMq2Z"
 # `SimpleImputer`는 한 특성의 통곗값을 사용하여 누락된 값을 채웁니다. 이와 달리 `IterativeImputer` 클래스는 다른 특성을 사용하여 누락된 값을 예측합니다. 먼저 `initial_strategy` 매개변수에 지정된 방식으로 누락된 값을 초기화합니다. 그다음 누락된 값이 있는 한 특성을 타깃으로 삼고 다른 특성을 사용해 모델을 훈련하여 예측합니다. 이런 식으로 누락된 값이 있는 모든 특성을 순회합니다.
 #
 # `initial_strategy` 매개변수에 지정할 수 있는 값은 `SimpleImputer`와 동일하게 `'mean'`, `'median'`, `'most_frequent'`, `'constant'`가 가능합니다.
@@ -198,7 +198,7 @@ imputed_data
 #
 # **머신러닝 교과서 with 파이썬,사이킷런,텐서플로 개정3판, 박해선 옮김** 발췌
 
-# + 
+# + colab={"base_uri": "https://localhost:8080/"} id="iuTQp_czMq2Z" outputId="01935bee-7f43-4ac9-c5b9-0216684a73d7"
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer
 
@@ -209,7 +209,7 @@ iimr.fit_transform(df2.values)
 from sklearn.impute import KNNImputer
 
 kimr = KNNImputer()
-kimr.fit_transform(df.drop(columns=['time']).values)
+#kimr.fit_transform(df.drop(columns=['time']).values)
 # -
 
 # ### 이전 값, 이후 값으로 채우기 fillna()
@@ -221,3 +221,91 @@ kimr.fit_transform(df.drop(columns=['time']).values)
 df.fillna(method='bfill') # method='backfill'와 같습니다
 
 df.fillna(method='ffill') # method='pad'와 같습니다
+
+# # 범주형 데이터 다루기
+# **범주형 데이터 : ** 범주형 데이터는 크게 순서가 없는 특성(색), 순서가 있는 특성(사이즈), 수치형 특성(가격)이 있습니다.
+# 각각의 특성을 갖는 dataframe 을 생성하겠습니다.
+
+import pandas as pd
+df = pd.DataFrame([
+    ['green', 'M', 10.1, 'class1'],
+    ['red', 'L', 13.5, 'class2'],
+    ['blue', 'XL', 15.3, 'class1']
+])
+df.columns=['color','size','price','classlabel']
+df
+
+# ## 순서가 있는 특성 매핑
+# 순서가 있는 특성은 범주형의 문자를 정수로 바꿔야 한다. 자동으로 특성에 맞춰 변환 해주는 함수는 없기 때문에 매핑함수를 만들어야 한다.
+# $$XL = L + 1 = M + 2$$
+
+size_mapping = {
+    'XL':3,
+    'L':2,
+    'M':1
+}
+df['size'] = df['size'].map(size_mapping)
+df
+
+# 원래의 범주형 데이터로 변환시에는 아래와 같은 함수를 사용하면 된다.
+
+inv_size_mapping = {v: k for k, v in size_mapping.items()}
+df['size'].map(inv_size_mapping)
+
+# ## 클래스 레이블 인코딩
+# 대부분의 라이브러리 들은 클래스 레이블이 정수로 매핑되어 있다고 가정합니다. sklearn의 경우 대부분 정수로 변환을 해주지만 실수를 줄이기 위해 정수 배열로 전달하는 것이 좋습니다. 클래스 레이블은 순서가 없다는 것이 중요한 특성입니다. enumerate를 사용하여 클래스 레이블을 0부터 할당합니다.
+
+import numpy as np
+class_mapping = {label:idx for idx, label in enumerate(np.unique(df['classlabel']))}
+class_mapping
+
+df['classlabel'] = df['classlabel'].map(class_mapping)
+df
+
+# sklearn의 LabelEncoder를 사용하면 조금 더 편하게 매핑할 수 있습니다.
+
+from sklearn.preprocessing import LabelEncoder
+class_le = LabelEncoder()
+y = class_le.fit_transform(df['classlabel'].values)
+y
+
+# inverse_transform 을 통해 원래 Label로 되돌릴 수 있습니다.
+
+class_le.inverse_transform(y)
+
+# ## 순서가 없는 범주형 데이터
+# color의 경우 순서가 없기 때문에 1,2,3 과 같은 정수형 숫자로 변환시에 학습 알고리즘이 특정 색상은 다른 색보다 작거나 크다고 판단할 수 있습니다. 이를 방지하기 위해서 OneHotEncoder를 사용합니다.
+
+from sklearn.preprocessing import OneHotEncoder
+X = df[['color','size','price']].values
+color_ohe = OneHotEncoder()
+color_ohe.fit_transform(X[:,0].reshape(-1,1)).toarray()
+
+# 여러개의 특성이 있는 배열에서 특정 열만 변환하려면 ColumnTransformer를 사용합니다. 이 클래스는 다음과 같이 (name, transformer, columns) 튜플리스트를 받습니다.
+
+from sklearn.compose import ColumnTransformer
+X = df[['color','size','price']].values
+c_transf = ColumnTransformer([
+    ('onehot', OneHotEncoder(), [0]),
+    ('nothing', 'passthrough', [1,2])
+])
+c_transf.fit_transform(X)
+
+# 더 편리한 방법은 Pandas의 get_dummies 메서드를 활용하는 방법입니다.
+
+pd.get_dummies(df[['color','size','price']])
+
+#특정 컬럼을 지정할 수도 있습니다.
+pd.get_dummies(df[['color','size','price']],columns=['size'])
+
+# OneHot 인코딩을 사용할 땐 다중공선성(Multicollinearity)를 고려해야합니다. 변수 간의 상관 관계 감소를 위해서 하나의 특성 컬럼을 지우는 방식으로 상관관계를 낮출 수 있습니다. color_blue를 지워도 red,green 모두 0 이라면 blue로 판별.
+#
+# * get_dummies를 에서 drop_first 매개변수를 True로 지정하면 첫번째 열을 삭제할 수 있습니다.
+# * OneHotEncoder에서는 drop='first', categories='auto'로 지정합니다. drop의 매개변수를 'if_binary'로 설정하면 두 개의 범주를 가진 특성일 때만 첫번째 열이 삭제됩니다.
+
+pd.get_dummies(df[['color','size','price']], drop_first=True)
+
+from sklearn.preprocessing import OneHotEncoder
+X = df[['color','size','price']].values
+color_ohe = OneHotEncoder(categories='auto',drop='first')
+color_ohe.fit_transform(X[:,0].reshape(-1,1)).toarray()
