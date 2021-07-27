@@ -309,3 +309,58 @@ from sklearn.preprocessing import OneHotEncoder
 X = df[['color','size','price']].values
 color_ohe = OneHotEncoder(categories='auto',drop='first')
 color_ohe.fit_transform(X[:,0].reshape(-1,1)).toarray()
+
+# # 훈련/테스트 데이터셋 나누기
+# sklearn의 train_test_split 함수를 이용하여 나눕니다.
+#
+# 실전에서 가장 많이 사용하는 비율은 데이터셋의 크기에 따라 6:4,7:3,8:2 입니다. 대용량 데이터셋의 경우에는 90:10 또는 99:1의 비율로 나누는 것도 적절합니다. 10만개 이상의 훈련 샘플이 있다면 1만개의 테스트 셋만 준비해도 괜찮습니다.
+#
+# 훈련과 테스트가 완료된 후에는 추가 테스트 셋도 훈련 셋도 포함하여 모델의 성능을 향상시키는 방법이 일반적으로 사용됩니다.
+
+'''
+from sklearn.model_selection import train_test_split
+X = df.iloc[:, 1:5].values
+y = df.iloc[: , -1:].values
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=1)
+'''
+
+# # 특성 스케일 맞추기
+#
+# Decision Tree, Random forest 는 특성 스케일에 영향을 받지 않는 알고리즘 입니다. 하지만 다른 알고리즘들은 특성의 스케일에 크게 영향을 받기 때문에 특성을 학습이 쉽게 맞출 필요가 있습니다. 크게 **정규화**와 **표준화**를 사용합니다.
+#
+# 최소-최대 스케일변환은 일반적인 정규화와 다른 특별한 케이스입니다.
+# $$x^{(i)}_{norm} = \frac{x^{(i)}-x_{min}}{x_{max}-x_{min}}$$
+#
+
+'''MinMaxScaler Sample
+from sklearn.preprocessing import MinMaxScaler
+mms = MinMaxScaler()
+X_train_norm = mms.fit_transform(X_train)
+X_test_norm = mms.transform(X_test)
+'''
+
+# 최댓값에서 최소값을 빼서 정규화를 하기 때문에 이상치에 민감하게 반응하게 됩니다.
+# 표준화는 분포를 정규 분포와 같게 만듭니다. 최소-최대 스케일 변환에 비해 이상치에 덜 민감하게 반응하게 됩니다.
+# $$x^{(i)}_{std} = \frac{x^{(i)}-\mu_x}{\sigma_x}$$
+
+'''Standard Scaler Sample
+from sklearn.preprocessing import StandardScaler
+stdsc = StandardScaler()
+X_train_std = stdsc.fit_transform(X_train)
+X_test_std = stdsc.transform(X_test)
+'''
+
+# 이상치가 많이 포함된 작은 데이터셋을 다룰때는 RobustScaler를 사용한다. RobustScaler는 중간 값($q_2$)를 빼고 1사분위수($q_1$)와 3사분위수($q_3$)의 차이로 나누어 스케일을 조정합니다.
+# $$x^{(i)}_{robust} = \frac{x^{(i)}-q_2}{q_3-q_1}$$
+
+'''RobustScaler Sample
+from sklearn.preprocessing import RobustScaler
+rbs = RobustScaler
+X_train_rbs = rbs.fit_transform(X_train)
+X_test_rbs = rbs.transform(X_test)
+'''
+
+# ## 유용한 특성 선택
+# L1,L2 Regularization: overfitting이 되면 상관관계가 크게 늘어남. 이를 방지하기 위함. 
+# $$E(w) = \frac{1}{2}\sum_{n = 1}^{N}\{t_n-w^T\phi(x_n)\}^2 + \lambda \frac{1}{2}w^Tw  $$
+# $(t_n-w^T\phi(x_n))$에서 $w$가 커지면 뒤의 $(\frac{1}{2}w^Tw)$로 인해 Cost 함수가 커지기 때문에 과적합을 방지할 수 있다.
