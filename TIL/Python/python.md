@@ -10,6 +10,15 @@ f = open('taglist.txt','r',enconding='utf-8')
 line = f.read().splitlines()
 ``` 
 
+## String
+```python
+# 문자열에 특정 문자가 있는지 확인
+test = "This is test"
+if "This" in test:
+    print(test)
+
+```
+
 # Pandas
 ```python
 # Series Data 
@@ -30,4 +39,8 @@ import sqlite3
 conn = sqlite3.connect('test.db')
 # Pandas DF to SQLite
 df.to_sql('val',conn)
+# If table exists / append , replace , fail
+df.to_sql('val',conn,if_exists="append")
+
+conn.close()
 ```
