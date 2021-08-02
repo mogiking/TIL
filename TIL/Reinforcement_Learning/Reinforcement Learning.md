@@ -1,5 +1,6 @@
 # Reinforcement_Learning
-이 문서는 [Notion](https://fuchsia-hole-cef.notion.site/97c67a1f4617446b83caba4d6cb3bd97)에서 Export한 md 파일입니다.
+
+이 문서는 [Notion]()에서 Export한 md 파일입니다.
 
 # Symbols
 
@@ -26,6 +27,14 @@ $\pi^*(a|s)$ : Optimal policy;  최대값을 가지는 Action Value function 을
 $N(s)$ : state s에 방문한 횟수.
 
 $\mu$ : Behavior Policy
+
+$\hat{V}(s;w) \approx V_\pi(s) \text{ or } \hat{Q}(s,a;w) \approx Q_\pi(s,a)$ : 근사치  
+
+$E(w) = \mathbb{E}[(V_\pi(s)-\hat{V}(s;w))^2]$ : Objective Function = Loss function
+
+$A^{\pi_\theta}(s,a) = Q^{\pi_\theta}(s,a) - V^{\pi_\theta}(s)$ : Action value function. $Q$에서 Baseline $V$를 뺌.
+
+$\delta^{\pi_\theta} = r + \gamma V^{\pi_\theta}(s') - V^{\pi_\theta}(s)$: Delta function. Action Value function에서 $Q$를 Bellman equation에 의해 $V$로 치환
 
 ---
 
@@ -198,3 +207,113 @@ $$Q(S,A) \leftarrow Q(S,A) + \alpha(R + \gamma \underset{a'}{\max}Q(S',a') - Q(S
 
 - 다음 State의 action 중 가장 큰 값을 선택하여 업데이트.
 - Policy evaluate 와 improvement 가 합쳐진 형태.
+
+# Value Function Approximation
+
+실제 문제에선 MDP가 굉장히 큼. 이 상태를 다 저장할 수 없음.
+
+Continuous state space 에서도 사용.
+
+Value Function을 Approximation 해야하는데, 이때 Deeplearning 방법론을 사용한다.
+
+![Reinforcement_Learning/Untitled%205.png](Reinforcement_Learning/Untitled%205.png)
+
+Policy Network를 구성.
+
+State를 입력하고, Deep Learning 방법론을 이용하여 Value Function을 구성한다. 이후 결과값으로 나오는 $\hat{Q}$ 를 바탕으로 action을 선택. Policy를 생성.
+
+## Gradient Descent for Value Function Approx.
+
+$$⁍$$
+
+Objective function 을 줄이는 방향으로 w를 업데이트.
+
+![Reinforcement_Learning/Untitled%206.png](Reinforcement_Learning/Untitled%206.png)
+
+$$w_1(i+1) = w_1(i) - \eta \nabla E(w_1(i))$$
+
+![Reinforcement_Learning/Untitled%207.png](Reinforcement_Learning/Untitled%207.png)
+
+- Gradient descent
+
+    Objective Function을 편미분 한 공식. 
+
+- Stochastic gradient descent
+
+    회차가 반복 될 때마다 $w$를 업데이트.
+
+## MC
+
+$$\vartriangle w = \eta(G_t - \hat V (S_t;w)) \nabla _w \hat V(S_t;w)$$
+
+$G_t$를 기준으로  $w$를 업데이트.
+
+## TD
+
+$$\vartriangle w = \eta(R_{t+1} + \gamma\hat V(S_{t+1};w) - \hat V (S_t;w)) \nabla _w \hat V(S_t;w)$$
+
+$R_{t+1} + \gamma\hat V(S_{t+1};w)$  를 기준으로 $w$ 업데이트.
+
+## Deep Q-Networks
+
+- DQN use experience replay and fixed Q-target
+    - Take action $a_t$ according to $\epsilon$ -greedy policy
+    - Store transition $(s_t,a_t,r_{t+1},s_{t+1})$ in replay memory $D$
+    - Compute Q-learning targets (fixed parameters $w^\bold{-}$)
+        - Fixed $w^-$ 를 Iteration을 어느 정도 수행한 뒤 업데이트
+    - Optimize MSE between Q-network and Q-learning targets
+
+$$E(w) = \mathbb{E}_{s,a,r,s'~D}[(r + \gamma \underset{a'} \max Q(s',a';w^-) - Q(s,a;w))^2]$$
+
+# Policy Gradient
+
+## Advantages of Policy-Based RL
+
+- Advantages:
+    - Better convergence properties
+    - Effective in high-dimensional or continuous action spaces
+    - Can learn stochastic policies (Value Base는 Greedy해서 deterministic)
+- Disadvantages:
+    - Typically converge to a local rather than global optimum.
+    - Evaluating a policy is typically inefficient and high variance.
+
+![Reinforcement_Learning/Untitled%208.png](Reinforcement_Learning/Untitled%208.png)
+
+## Actor-Critic
+
+Policy $\pi _\theta$를 추정하기 위함. $\theta$ 값을 업데이트 해야 하는데 Policy Gradient를 사용하여 업데이트 한다.
+
+$$\begin{align*}
+\nabla_\theta J(\theta)
+&= \mathbb{E}_{\pi _\theta}[\nabla_\theta \log \pi_\theta (s,a) G_t] &&\text{REINFORCEMENT}
+\\
+&= \mathbb{E}_{\pi _\theta}[\nabla_\theta \log \pi_\theta (s,a) Q_w(s,a)] &&\text{Q Actor-Critic}
+\\
+&= \mathbb{E}_{\pi _\theta}[\nabla_\theta \log \pi_\theta (s,a) A(s)] &&\text{Advantage Actor-Critic}
+\\
+&= \mathbb{E}_{\pi _\theta}[\nabla_\theta \log \pi_\theta (s,a) \delta_v] &&\text{TD Actor-Critic}
+\end{align*}$$
+
+### Q Actor-Critic
+
+- $G_t$를 이용하는 MC는 variance가 크다.
+- critic을 사용하여 action-value function을 업데이트 한다.
+- Apporox된 Value값을 갖고 policy gradient도 계산.
+- Critic = action value function을 업데이트 ($w$)
+- Actor = $\theta$ 를 업데이트. 업데이트 시에 critic에서 나온 추정된 value function을 쓰자.
+
+### Advantage Actor-Critic
+
+- Return이 너무 커서 편향이 생길 수 있어서 Baseline을 이용해 편차를 줄임.
+
+    $A^{\pi_\theta}(s,a) = Q^{\pi_\theta}(s,a) - V^{\pi_\theta}(s)$ : Action value function. $Q$에서 Baseline $V$를 뺌.
+
+    하지만 Advantage Function을 이용하려면 $Q_w(s,a) = Q^{\pi_\theta}(s,a)$, $V_v(s) = V^{\pi_\theta}(s)$ 를 모두 추정해야함. ⇒ 계산이 복잡.
+
+### TD Actor-Critic
+
+- Q function을 V로 바꾸자. → Delta function
+
+    $\delta^{\pi_\theta} = r + \gamma V^{\pi_\theta}(s') - V^{\pi_\theta}(s)$
+
+    $\delta_v = r + \gamma V_v(s') - V_v(s)$
