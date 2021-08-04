@@ -394,3 +394,132 @@ Image(url='https://git.io/JtY8t', width=500)
 # 랜덤포레스트를 사용하면 앙상블에 참여한 모든 결정트리에서 계산한 평균적인 불순도 감소로 특성 중요도를 측정할 수 있습니다.RFE는 재귀적 특성 제거 방법을 사용합니다. 처음에 모든 특성을 사용하여 모델을 만들고 특성 중요도가 가장 낮은 특성을 제거합니다. 그다음 제외된 특성을 빼고 나머지 특성으로 새로운 모델을 만듭니다. 이런식으로 미리 정의한 특성 개수가 남을때까지 반복합니다. 
 # - n_features_to_select = $n$으로 매개변수에 특성의 갯수를 지정할 수 있습니다.
 # - step 매개변수에서 $[0,1]$의 범위에서 실수를 지정하여 비율을 지정할 수 있습니다. 기본 값은 1 입니다.
+
+# # 차원축소
+#
+#
+# ## 주성분 분석을 통한 비지도 차원 축소
+# 지나치게 많은 데이터로 인해서 연산속도와 정확도가 떨어지는 차원의 저주(curse of dimensionality)에 빠지게 됩니다. 중요한 원소들만 추출하여 성능을 향상 시킵니다.
+#
+# ### 주성분 분석의 주요 단계
+# PCA는 고차원 데이터에서 분산이 가장 큰 방향(직교), 좀 더 작거가 같은 수의 차원을 갖는 새로운 부분 공간으로 투영한다.
+# 새로운 부분공간의 직교좌표는 분산이 최대인 방향으로 해석할 수 있다.
+#
+# - 차원 축소 전 $x_1,x_2$
+# - 차원 축소 후 $PC1,PC2$
+
+Image(url='https://git.io/JtsvW', width=400) 
+
+# PCA는 차원 축소를 위해 $d * k$ 차원의 변환 행렬 $W$를 만듭니다.
+# 특성 벡터 $x$를 $W$를 통해 $k$차원의 특성 부분 공간으로 매핑합니다.
+# $$W \in \mathbb{R^{d*k}} \\ xW = z \\ z = [z_1,z_2,\cdots,z_k],\ \ z \in \mathbb{R^k}$$
+#
+# **PCA는 특성 스케일에 민감하게 반응하기 때문에, PCA 특성을 표준화 전처리 해야합니다.**
+#
+# 1. $d$차원 데이터셋을 표준화 전처리합니다.
+# 1. 공분산 행렬(covariance matrix)을 만듭니다.
+# 1. 공분산 행렬을 고유 벡터(eigenvector)와 고윳값(eigenvalue)으로 분해합니다.
+# 1. 고윳값을 내림차순으로 정렬하고 그에 해당하는 고유 벡터의 순위를 매깁니다.
+# 1. 고윳값이 가장 큰 k개의 고유 벡터를 선택합니다. ($k \leq d$)
+# 1. 최상위 k개의 고유 벡터로 투영 행렬(projection Matrix) $W$를 만듭니다.
+# 1. 투영행렬 $W$를 사용해서 $d$차원 입력 데이터셋 $X$를 새로운 $k$ 차원의 특성 부분 공간으로 변환합니다.
+
+# +
+import pandas as pd
+
+df_wine = pd.read_csv('https://archive.ics.uci.edu/ml/machine-learning-databases/wine/wine.data', header=None)
+# -
+
+from sklearn.model_selection import train_test_split
+X, y = df_wine.iloc[:,1:].values, df_wine.iloc[:,0].values
+X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.3, stratify=y, random_state=0)
+
+# 1. 특성을 표준화 전처리
+from sklearn.preprocessing import StandardScaler
+sc = StandardScaler()
+X_train_std = sc.fit_transform(X_train)
+X_test_std = sc.transform(X_test)
+
+# 공분산 행렬의 계산은 다음과 같이 계산 합니다.
+# $d*d$차원의 대칭행렬로 만듭니다. 공분산은 다음과 같이 계산합니다.
+#
+# $$ \sigma_{jk} = \frac{1}{n-1}\Sigma_{i=1}^{n}(x_j^{(i)}-\mu _j)(x_k^{(i)}-\mu _k)$$
+# 공분산 행렬 $\Sigma$ 에서 고유벡터($v$)와 고유값($\lambda$)을 추출합니다.
+# $$ \Sigma v = \lambda v $$
+
+# 2. 공분산 행렬(covariance matrix)을 만듭니다.
+import numpy as np
+cov_mat = np.cov(X_train_std.T)
+print(cov_mat.shape)
+# 3. 공분산 행렬을 고유 벡터(eigenvector)와 고윳값(eigenvalue)으로 분해합니다.
+eigen_vals, eigen_vecs = np.linalg.eig(cov_mat)
+# 4. 고윳값을 내림차순으로 정렬하고 그에 해당하는 고유 벡터의 순위를 매깁니다.
+print('\n 고윳값 \n%s' % eigen_vals)
+
+# 데이터 셋의 특성 부분 공간으로 압축하기 위해서 가장 많은 정보를 가진 고유벡터 일부만 선택합니다. 설명된 분산 비율은  전체 고윳값의 합에서 고윳값의 비율입니다.
+# $$\text{설명된 분산 비율 = } \frac{\lambda _j}{\Sigma _{j=1}^{d} \lambda _j}$$
+
+tot = sum(eigen_vals)
+var_exp = [(i / tot) for i in sorted(eigen_vals, reverse=True)]
+cum_var_exp = np.cumsum(var_exp)
+
+
+# +
+import matplotlib.pyplot as plt
+
+# 5. 고윳값이 가장 큰 k개의 고유 벡터를 선택합니다. ( k≤dk≤d )
+plt.bar(range(1, 14), var_exp, alpha=0.5, align='center',
+        label='Individual explained variance')
+plt.step(range(1, 14), cum_var_exp, where='mid',
+         label='Cumulative explained variance')
+plt.ylabel('Explained variance ratio')
+plt.xlabel('Principal component index')
+plt.legend(loc='best')
+plt.tight_layout()
+# plt.savefig('images/05_02.png', dpi=300)
+plt.show()
+# -
+
+# 부분 공간으로 치환을 하기위해 두개의 특성을 고릅니다.
+#
+# 고윳값의 내림차순으로 고유 벡터와 고윳값의 쌍을 정렬 후,
+# 투영행렬 $W$를 만듭니다.
+
+# +
+# (고윳값, 고유벡터) 튜플의 리스트를 만듭니다
+eigen_pairs = [(np.abs(eigen_vals[i]), eigen_vecs[:, i])
+               for i in range(len(eigen_vals))]
+
+# 높은 값에서 낮은 값으로 (고윳값, 고유벡터) 튜플을 정렬합니다
+eigen_pairs.sort(key=lambda k: k[0], reverse=True)
+# -
+
+# 6. 투영행렬 W 를 만듭니다.
+w = np.hstack((eigen_pairs[0][1][:, np.newaxis],
+               eigen_pairs[1][1][:, np.newaxis]))
+print('투영 행렬 W:\n', w)
+
+# **예제에서는 2가지의 특성만 추출했지만 실제 환경에선 성능에 맞춰 고윳값을 선택해야합니다.**
+#
+# 전체 데이터셋 $X$에 투영행렬 $W$를 투영(점곱)합니다.
+# $$ X' = XW $$
+
+X_train_pca = X_train_std.dot(w)
+
+# +
+# 시각화
+X_train_pca = X_train_std.dot(w)
+colors = ['r', 'b', 'g']
+markers = ['s', 'x', 'o']
+
+for l, c, m in zip(np.unique(y_train), colors, markers):
+    plt.scatter(X_train_pca[y_train == l, 0], 
+                X_train_pca[y_train == l, 1], 
+                c=c, label=l, marker=m)
+
+plt.xlabel('PC 1')
+plt.ylabel('PC 2')
+plt.legend(loc='lower left')
+plt.tight_layout()
+# plt.savefig('images/05_03.png', dpi=300)
+plt.show()
