@@ -398,7 +398,7 @@ Image(url='https://git.io/JtY8t', width=500)
 # # 차원축소
 #
 #
-# ## 주성분 분석을 통한 비지도 차원 축소
+# ## PCA (주성분 분석을 통한 비지도 차원 축소)
 # 지나치게 많은 데이터로 인해서 연산속도와 정확도가 떨어지는 차원의 저주(curse of dimensionality)에 빠지게 됩니다. 중요한 원소들만 추출하여 성능을 향상 시킵니다.
 #
 # ### 주성분 분석의 주요 단계
@@ -444,7 +444,9 @@ X_test_std = sc.transform(X_test)
 # $d*d$차원의 대칭행렬로 만듭니다. 공분산은 다음과 같이 계산합니다.
 #
 # $$ \sigma_{jk} = \frac{1}{n-1}\Sigma_{i=1}^{n}(x_j^{(i)}-\mu _j)(x_k^{(i)}-\mu _k)$$
+#
 # 공분산 행렬 $\Sigma$ 에서 고유벡터($v$)와 고유값($\lambda$)을 추출합니다.
+#
 # $$ \Sigma v = \lambda v $$
 
 # 2. 공분산 행렬(covariance matrix)을 만듭니다.
@@ -522,4 +524,218 @@ plt.ylabel('PC 2')
 plt.legend(loc='lower left')
 plt.tight_layout()
 # plt.savefig('images/05_03.png', dpi=300)
+plt.show()
+# -
+
+# ## LDA (선형 판별 분석을 통한 지도 방식의 데이터 압축)
+#
+# LDA(Linear Discriminant Analysis, 선형판별분석)은 **규제가 없는 모델**에서 차원의 저주로 인한 과대 적합 정도를 줄이고 계산 효율성을 높이기 위한 특성 추출의 기법으로 사용합니다. LDA의 목표는 클래스를 최적으로 구분할 수 있는 특성 부분 공간을 찾는 것.
+#
+# - PCA: 비지도 학습. 각 클래스에 속한 샘플이 적을때 더 우수함.
+# - LDA: 지도 학습. 일반적으로 성능이 뛰어남.
+#
+# LDA
+# - 데이터가 정규분포라고 가정
+# - 클래스(y)가 동일한 공분산 행렬을 가지고 훈련 샘플은 서로 통계적으로 독립적이라고 가정합니다.
+#
+# ![LDA](https://git.io/Jtsv8)
+#
+# 1. $d$차원의 데이터셋을 표준화 전처리합니다.
+# 1. 각 클래스에 대해 $d$차원의 평균 벡터를 계산합니다.
+# 1. 클래스간의 산포 행렬(scatter matrix)$S_B$와 클래스 내 산포 행렬 $S_w$를 구성합니다.
+# 1. $S^{-1}_{W}S_B$ 행렬의 고유 벡터와 고윳값을 계산합니다.
+# 1. 고윳값을 내림차순으로 정렬하여 고유벡터의 순서를 매깁니다.
+# 1. 고윳값이 가장 큰 $k$개의 고유 벡터를 선택하여 $d*k$ 차원의 변환 행렬 $W$를 구성합니다. 이 행렬의 열이 고유 벡터입니다.
+# 1. 변환 행렬 $W$를 사용하여 샘플을 새로운 특성 부분 공간으로 투영합니다.
+#
+# 각 클래스(y)별로 평균 벡터를 만듭니다.
+#
+# $$ m_i = \frac{1}{n_1}\sum_{x \in D_i}x_m $$
+#
+# 와인 데이터를 갖고 실습.
+
+# +
+np.set_printoptions(precision=4)
+
+mean_vecs = []
+for label in range(1, 4):
+    mean_vecs.append(np.mean(X_train_std[y_train == label], axis=0))
+    print('MV %s: %s\n' % (label, mean_vecs[label - 1]))
+# -
+
+# 산포 행렬 $S_w$ 계산
+#
+# $$ S_W = \sum_{i=1}^{c}S_i $$
+#
+# 이 행렬은 개별 클래스 $i$의 산포 행렬 $S_i$를 더해 구합니다.
+#
+# $$ S_i = \sum_{x\in D_i} (x-m_i)^T(x-m_i) $$
+
+# +
+d = 13 # 특성의 수
+S_W = np.zeros((d, d))
+for label, mv in zip(range(1, 4), mean_vecs):
+    class_scatter = np.zeros((d, d))  # 각 클래스에 대한 산포 행렬
+    for row in X_train_std[y_train == label]:
+        row, mv = row.reshape(d, 1), mv.reshape(d, 1)  # 열 벡터를 만듭니다
+        class_scatter += (row - mv).dot((row - mv).T)
+    S_W += class_scatter                          # 클래스 산포 행렬을 더합니다
+
+print('클래스 내의 산포 행렬: %sx%s' % (S_W.shape[0], S_W.shape[1]))
+# -
+
+# 산포 행렬을 계산할 때 훈련 데이터셋의 클래스 레이블이 균등하게 분포되어 있다고 가정합니다.
+
+print('클래스 레이블 분포: %s' 
+      % np.bincount(y_train)[1:])
+
+# 산포 행렬을 클래스의 개수 $n_i$로 나누어 스케일을 조정합니다. 이는 공분산 행렬과 같아집니다.
+# 즉 공분산 행렬은 산포행렬의 정규화 버전입니다.
+
+d = 13  # 특성의 수
+S_W = np.zeros((d, d))
+for label, mv in zip(range(1, 4), mean_vecs):
+    class_scatter = np.cov(X_train_std[y_train == label].T)
+    S_W += class_scatter
+print('스케일 조정된 클래스 내의 산포 행렬: %sx%s' % 
+      (S_W.shape[0], S_W.shape[1]))
+
+# 클래스 간의 산포 행렬 $S_B$를 계산합니다. ($c$ = $n$; class 수 / $m$ 은 모든 클래스의 샘플을 포함하여 계산된 전체 평균)
+#
+# $$ S_B = \sum_{i=1}^{c}n_i(m_i-m)^T(m_i-m)$$
+
+# +
+mean_overall = np.mean(X_train_std, axis=0)
+mean_overall = mean_overall.reshape(d, 1)  # 열 벡터로 만들기
+d = 13  # 특성 개수
+S_B = np.zeros((d, d))
+for i, mean_vec in enumerate(mean_vecs):
+    n = X_train_std[y_train == i + 1, :].shape[0]
+    mean_vec = mean_vec.reshape(d, 1)  # 열 벡터로 만들기
+    S_B += n * (mean_vec - mean_overall).dot((mean_vec - mean_overall).T)
+
+print('클래스 간의 산포 행렬: %sx%s' % (S_B.shape[0], S_B.shape[1]))
+# -
+
+# 행렬 $S_W^{-1}S_B$의 고윳값을 계산합니다.
+
+eigen_vals, eigen_vecs = np.linalg.eig(np.linalg.inv(S_W).dot(S_B))
+
+# **노트**: 
+#
+# 위에서 [`numpy.linalg.eig`](http://docs.scipy.org/doc/numpy/reference/generated/numpy.linalg.eig.html) 함수를 사용해 대칭 공분산 행렬을 고윳값과 고유벡터로 분해했습니다.
+#
+# <pre>>>> eigen_vals, eigen_vecs = np.linalg.eig(cov_mat)</pre>
+#
+# 이것이 잘못된 것은 아니지만 최적은 아닙니다. [에르미트(Hermetian) 행렬](https://en.wikipedia.org/wiki/Hermitian_matrix)를 위해서 설계된 [`numpy.linalg.eigh`](http://docs.scipy.org/doc/numpy/reference/generated/numpy.linalg.eigh.html)를 사용하는 것이 더 좋습니다. 이 함수는 항상 실수 고윳값을 반환합니다. 수치적으로 약간 덜 안정적인 `np.linalg.eig`는 비대칭 정방행렬을 분해할 수 있지만 어떤 경우에 복소수 고윳값을 반환할 수 있습니다.
+
+# 고유 벡터와 고윳값 쌍을 계산한 후 내림차순으로 고윳값 정렬.
+
+# +
+# (고윳값, 고유벡터) 튜플의 리스트를 만듭니다.
+eigen_pairs = [(np.abs(eigen_vals[i]), eigen_vecs[:, i])
+               for i in range(len(eigen_vals))]
+
+# (고윳값, 고유벡터) 튜플을 큰 값에서 작은 값 순서대로 정렬합니다.
+eigen_pairs = sorted(eigen_pairs, key=lambda k: k[0], reverse=True)
+
+# 고윳값의 역순으로 올바르게 정렬되었는지 확인합니다.
+print('내림차순의 고윳값:\n')
+for eigen_val in eigen_pairs:
+    print(eigen_val[0])
+# -
+
+# LDA에서 선형 판별 벡터는 최대 $c-1$개 입니다.
+# 두 개의 판별 고유 벡터를 열로 쌓아서 변환 행렬 $W$를 만듭니다.
+
+w = np.hstack((eigen_pairs[0][1][:, np.newaxis].real,
+              eigen_pairs[1][1][:, np.newaxis].real))
+print('행렬 W:\n', w)
+
+# 변환 행렬 $W$를 투영하여 subspace 생성
+#
+# $$X'=XW$$
+
+# +
+X_train_lda = X_train_std.dot(w)
+colors = ['r', 'b', 'g']
+markers = ['s', 'x', 'o']
+
+for l, c, m in zip(np.unique(y_train), colors, markers):
+    plt.scatter(X_train_lda[y_train == l, 0],
+                X_train_lda[y_train == l, 1] * (-1),
+                c=c, label=l, marker=m)
+
+plt.xlabel('LD 1')
+plt.ylabel('LD 2')
+plt.legend(loc='lower right')
+plt.tight_layout()
+# plt.savefig('images/05_08.png', dpi=300)
+plt.show()
+# -
+
+# ### 사이킷런의 LDA
+#
+
+# +
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+
+lda = LDA(n_components=2)
+X_train_lda = lda.fit_transform(X_train_std, y_train)
+
+# +
+from matplotlib.colors import ListedColormap
+
+def plot_decision_regions(X, y, classifier, resolution=0.02):
+
+    # 마커와 컬러맵을 준비합니다
+    markers = ('s', 'x', 'o', '^', 'v')
+    colors = ('red', 'blue', 'lightgreen', 'gray', 'cyan')
+    cmap = ListedColormap(colors[:len(np.unique(y))])
+
+    # 결정 경계를 그립니다
+    x1_min, x1_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+    x2_min, x2_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+    xx1, xx2 = np.meshgrid(np.arange(x1_min, x1_max, resolution),
+                           np.arange(x2_min, x2_max, resolution))
+    Z = classifier.predict(np.array([xx1.ravel(), xx2.ravel()]).T)
+    Z = Z.reshape(xx1.shape)
+    plt.contourf(xx1, xx2, Z, alpha=0.4, cmap=cmap)
+    plt.xlim(xx1.min(), xx1.max())
+    plt.ylim(xx2.min(), xx2.max())
+
+    # 클래스별로 샘플을 그립니다
+    for idx, cl in enumerate(np.unique(y)):
+        plt.scatter(x=X[y == cl, 0], 
+                    y=X[y == cl, 1],
+                    alpha=0.6, 
+                    color=cmap(idx),
+                    edgecolor='black',
+                    marker=markers[idx], 
+                    label=cl)
+
+
+# +
+from sklearn.linear_model import LogisticRegression
+
+lr = LogisticRegression(random_state=1)
+lr = lr.fit(X_train_lda, y_train)
+
+plot_decision_regions(X_train_lda, y_train, classifier=lr)
+plt.xlabel('LD 1')
+plt.ylabel('LD 2')
+plt.legend(loc='lower left')
+plt.tight_layout()
+# plt.savefig('images/05_09.png', dpi=300)
+plt.show()
+
+# +
+X_test_lda = lda.transform(X_test_std)
+
+plot_decision_regions(X_test_lda, y_test, classifier=lr)
+plt.xlabel('LD 1')
+plt.ylabel('LD 2')
+plt.legend(loc='lower left')
+plt.tight_layout()
+# plt.savefig('images/05_10.png', dpi=300)
 plt.show()
