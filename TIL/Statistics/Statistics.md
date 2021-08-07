@@ -15,6 +15,8 @@ $$(E \cup F)^c = E^c \cap F^c \\
 
  Mutually Exclusive (상호 배타) : $A \cap B = AB = \phi$
 
+조건부 확률 : $P(E|F) = \frac{P(EF)}{P(F)}$
+
 # 1강.
 
 ## Permutations
@@ -97,3 +99,65 @@ x \in E \text{  then  } x \in S $$
 
 - Values between 0 and 130:  $S = \{x | 0 < x < 130\}$
 - Points inside a circle of radius2: $S = \{(x,y) | x^2 + y^2 < 4\}$
+
+# 3강. Conditional Probability(조건부확률)
+
+The probability that event $E$ occurs given that event $F$ occurs
+
+$$P(E|F) = \frac{P(EF)}{P(F)}\text{ for } P(F) > 0$$
+
+- Probability of $E$ given $F$
+- Probability of $E$ conditional on $F$
+
+$E$ and $F$ are mutually exclusive : 0
+
+$F \subset E$ : 1
+
+### Multiplicative Rules
+
+$$P(AB) = P(A)P(B|A) = P(B)P(A|B)$$
+
+![Statistics%206d9a192cee654445af25736311443cdd/Untitled.png](Statistics%206d9a192cee654445af25736311443cdd/Untitled.png)
+
+## Bayes' Rule (베이즈 룰)
+
+- Rule that **calculates the posterior probability** based on **prior and data probabilities**
+- Posterior probability can be considered as an updated version of the prior probability
+
+Let $A_1$, $A_2$, and $A_3$ be a partition of the sample S and they are mutually exclusive. B is an event.
+
+![Statistics%206d9a192cee654445af25736311443cdd/Untitled%201.png](Statistics%206d9a192cee654445af25736311443cdd/Untitled%201.png)
+
+**Law of Total Probability**
+
+$$\begin{align*}
+P(B) &= P(A_1B) + P(A_2B) + P(A_3B) \\ &=\sum_{i=1}^3 P(A_i)P(B|A_i)
+\end{align*}$$
+
+Suppose we know the following probabilities:
+
+$P(A_1),P(A_2),P(A_3)$ : Prior probability (사전확률| 정보$(B)$를 받기 전의 확률)
+
+$P(B|A_1),P(B|A_2),P(B|A_3)$ : Data probability (사전정보 조건부확률)
+
+We would like to know the following probabilities:
+
+$P(A_1|B),P(A_2|B),P(A_3|B)$ : Posterior probability (사후확률| 정보$(B)$로 업데이트 된 확률)
+
+$$\begin{align*}
+P(A_1|B) &= \frac{P(A_1)P(B|A_1)}{P(B)} \\&= \frac{P(A_1)P(B|A_1)}{P(A_1)P(B|A_1)+P(A_2)P(B|A_2)+P(A_3)P(B|A_3)}
+\end{align*}$$
+
+## Odds (아즈, 오즈)
+
+$$\frac{P(A)}{P(A^c)} = \frac{P(A)}{1-P(A)}$$
+
+- 성공 확률이 1일 경우 Odds는 무한대 값.
+- 성공 확률이 0일 경우 Odds는 0
+
+**배당에서 사용될 경우**
+
+각 국가의 우승 Odds:
+
+- 독일 4/1         P(독일) = 1/5
+- 한국 500/1     P(한국) = 1/500
