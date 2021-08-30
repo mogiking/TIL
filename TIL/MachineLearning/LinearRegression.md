@@ -120,3 +120,28 @@ $$\lambda||w||_1$$
 ### Elasticnet
 $$\lambda_1||w||^2_2 + \lambda_2||w||_1$$
 엘라스틱 넷은 둘의 절충안으로 사용합니다. 희소 모델을 만드는 L1과 많은 특성을 선택할 수 있는 L2가 모두 들어있습니다.
+
+## Random Forest를 사용하여 비선형 관계 다루기
+결정트리는 Classification에서 주로 사용하던 알고리즘이다. 
+결정트리의 불순도 지표를 엔트로피로 정의했는데 이것을 MSE로 교체하면 MSE가 가장 낮게 나오는 분류 모델을 만든다. 해당 모델이 Regression 모델이 될 수 있다.
+결정트리 Regression에선 MSE를 종종 노드 내 분산(within-node variance)라고 부르고, 분할 기준을 분산 감소로 이야기 한다.
+
+```Python
+from sklearn.tree import DecisionTreeRegressor
+
+X = df[['LSTAT']].values
+y = df['MEDV'].values
+
+tree = DecisionTreeRegressor(max_depth=3)
+tree.fit(X, y)
+
+sort_idx = X.flatten().argsort()
+
+lin_regplot(X[sort_idx], y[sort_idx], tree)
+plt.xlabel('% lower status of the population [LSTAT]')
+plt.ylabel('Price in $1000s [MEDV]')
+# plt.savefig('images/10_14.png', dpi=300)
+plt.show()
+```
+
+**랜덤 포레스트**는 결정트리 모델을 앙상블하는 방법이다. 과적합될 수 있지만 특성간의 관계를 잘 나타낸다.
