@@ -80,6 +80,8 @@ d = {
 }
 
 # Map의 방문 여부 변수 초기화.
+# mapinfo input = (x좌표,y좌표)
+# mapinfo output = [방문횟수, 바다 = 1 / 땅 = 0]
 mapinfo = {}
 for i in range(n):
     for k in range(m):
