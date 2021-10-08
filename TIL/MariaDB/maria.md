@@ -33,8 +33,12 @@ show variables like 'c%';
 
 ### 스키마 확인
 ```sql
-show columns from [Tablename]
+show columns from [Tablename];
+show full columns from [Tablename];
 ```
+
+
+## 설정
 
 ### 유저 추가
 유저 확인
@@ -51,4 +55,29 @@ CREATE USER 'UserName'@'%' identified by 'Password';
 -- 특정 Database의 모든 테이블 접근 허용
 GRANT ALL PRIVILEGES ON [DatabaseName].* TO 'Username'@'%';
 -- 
+```
+
+
+## Update MariaDB
+
+CentOS7의 Default Repo를 사용하여 MariaDB를 설치하면 5.5 버전으로 설치가 된다.
+
+Trigger를 Datetime에서 사용하지 못하는 등의 문제가 있기 때문에 최신 버전인 10.6 으로 업데이트를 진행했다.
+
+Add MariaDB.repo at /etc/yum.repos.d/
+
+```
+[mariadb]
+name=MariaDB
+baseurl = https://mirror.yongbok.net/mariadb/yum/10.6/centos7-amd64
+gpgkey=https://mirror.yongbok.net/mariadb/yum/RPM-GPG-KEY-MariaDB
+gpgcheck=1
+```
+
+update mariadb
+
+```bash
+systemctl stop mariadb
+yum update mariadb-server
+systemctl start mariadb
 ```
